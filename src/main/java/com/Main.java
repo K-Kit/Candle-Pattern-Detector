@@ -9,7 +9,7 @@ import java.util.List;
 // really should add error handling and async asap but lets keep it simple for now
 public class Main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         /*
         * Sandbox code right now
         * */
@@ -26,9 +26,9 @@ public class Main {
         * Will likely add functions to fetch from the previous history end if candle table exists for the event of
         * system failure
         */
-        marketSymbols.stream().forEach(symbol -> {
+        marketSymbols.forEach(symbol -> {
             List<Candlestick> candlesticks = binanceDataLoader.getCandles( symbol, interval);
-            candlesticks.stream().forEach(candlestick -> {
+            candlesticks.forEach(candlestick -> {
                         dynamoManager.insertCandle(symbol, interval, candlestick);
                     }
             );
