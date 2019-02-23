@@ -18,7 +18,7 @@ public class Main {
 
         // to keep number of api calls down we'll just fetch ETH pairs
         // i.e. "ADA/ETH" but not "ADA/BTC"
-        List<String> marketSymbols = binanceDataLoader.getTickers("ETH");
+        List<String> marketSymbols = binanceDataLoader.getTickers("BTC");
         String interval = "4h";
 
         /*
@@ -28,10 +28,7 @@ public class Main {
         */
         marketSymbols.forEach(symbol -> {
             List<Candlestick> candlesticks = binanceDataLoader.getCandles( symbol, interval);
-            candlesticks.forEach(candlestick -> {
-                        dynamoManager.insertCandle(symbol, interval, candlestick);
-                    }
-            );
+            dynamoManager.writeHistoricalCandles(symbol, interval, candlesticks);
         });
 
 
