@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class BinanceDataLoader {
-    Map<String, CandlestickInterval> stringCandlestickMap = new HashMap<String, CandlestickInterval>();
+    public Map<String, CandlestickInterval> stringCandlestickMap = new HashMap<String, CandlestickInterval>();
     BinanceApiClientFactory factory;
     BinanceApiRestClient client;
 
@@ -48,7 +48,7 @@ public class BinanceDataLoader {
 
     public List<String> getTickers(String market){
         List<BookTicker> tickers = client.getBookTickers();
-        List<String> symbols = tickers.stream().filter(s->s.getSymbol().endsWith("ETH")).map(bookTicker -> {
+        List<String> symbols = tickers.stream().filter(s->s.getSymbol().endsWith(market)).map(bookTicker -> {
             return bookTicker.getSymbol();
         }).collect(Collectors.toList());
         return symbols;
@@ -59,6 +59,9 @@ public class BinanceDataLoader {
         * Get candle interval from map and fetch candles, values supported in this example:
         * "5m", "15m", "30m", "1h", "4h"
         */
-        return client.getCandlestickBars(symbol, stringCandlestickMap.get(interval));
+//        return client.getCandlestickBars(symbol, stringCandlestickMap.get(interval));
+        // since we're only working with patterns we dont need as many candles, didn't think of this at first...
+        // so we're fetching 25 candles
+        return client.getCandlestickBars(symbol, stringCandlestickMap.get(interval),25, null, null);
     }
 }
