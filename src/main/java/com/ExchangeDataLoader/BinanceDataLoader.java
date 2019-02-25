@@ -38,7 +38,6 @@ public class BinanceDataLoader {
 
 
     /*
-    * TODO learn how to java
     * Currently sandboxing some code to adjust to java
     * just using print statements in main() to figure out what I'm working with
     */
@@ -48,10 +47,16 @@ public class BinanceDataLoader {
 
     public List<String> getTickers(String market){
         List<BookTicker> tickers = client.getBookTickers();
-        List<String> symbols = tickers.stream().filter(s->s.getSymbol().endsWith(market)).map(bookTicker -> {
-            return bookTicker.getSymbol();
-        }).collect(Collectors.toList());
-        return symbols;
+        if (market.toLowerCase() == "all") {
+            return tickers.stream().map(bookTicker -> {
+                return bookTicker.getSymbol();
+            }).collect(Collectors.toList());
+        }
+        else {
+            return tickers.stream().filter(s->s.getSymbol().endsWith(market)).map(bookTicker -> {
+                return bookTicker.getSymbol();
+            }).collect(Collectors.toList());
+        }
     }
 
     public List<Candlestick> getCandles(String symbol, String interval){

@@ -1,19 +1,23 @@
 package com;
 
+import com.ExchangeDataLoader.DepthCache;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.*;
+import com.amazonaws.services.dynamodbv2.document.spec.UpdateItemSpec;
+import com.amazonaws.services.dynamodbv2.document.utils.NameMap;
+import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
 import com.amazonaws.services.dynamodbv2.model.*;
 import com.binance.api.client.domain.event.CandlestickEvent;
 import com.binance.api.client.domain.market.Candlestick;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import org.json.JSONObject;
+
 
 import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 
 /*
@@ -25,15 +29,23 @@ public class DynamoManager {
     AmazonDynamoDBClient client;
     DynamoDB dynamoDB;
 
+
     public DynamoManager(){
         /*
          * Having trouble setting up my environmental variables, using deprecated method for now
          * will revisit this later if I have time
          * credentials class will not be included on github for obvious reasons
          * */
+
+        // map key values
+
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().withRegion("us-east-1").build();
         dynamoDB = new DynamoDB(client);
     }
+
+
+
+
 
     public Item createCandleItem(Candlestick candlestick) {
         return new Item().withPrimaryKey("timestamp", candlestick.getOpenTime())
@@ -73,6 +85,48 @@ public class DynamoManager {
     }
 
 
+
+    public void updateDepthItem(DepthCache depthCache){
+        Map entry = new JSONObject(depthCache.getDepthCache()).toMap();
+        Table table = dynamoDB.getTable(depthCache.symbol);
+        table.putItem(new Item().withPrimaryKey("time", depthCache.lastUpdateTime)
+        .withMap("depth", entry)
+        );
+
+//        insertKeyValue("pairs", "symbol", depthCache.symbol,
+//                "time_depth", entry);
+    }
+
+    public boolean insertKeyValue(String tableName, String primaryKey, String
+            primaryKeyValue, String updateColumn, Object newValue) {
+
+        List<Object> arr = new ArrayList<>();
+        arr.add(newValue);
+
+        Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
+        expressionAttributeValues.put(":val", arr);
+
+        Map<String, String> expressionAttributeNames = new HashMap<String, String>();
+        expressionAttributeNames.put("#D", updateColumn);
+        //Configuration to connect to DynamoDB
+
+        Table table = dynamoDB.getTable(tableName);
+
+
+        boolean insertAppendStatus = false;
+        try {
+            String updateExpression = "set #D = list_append(#D, :val)";
+            table.updateItem(primaryKey, primaryKeyValue, updateExpression, expressionAttributeNames, expressionAttributeValues);
+            insertAppendStatus = true;
+        } catch(Exception e) {
+            // this needs to be changed to only happen on item doesnt exist but i'm getting tired and provisioned
+            // throughput is being weird..
+            table.putItem(new Item().withPrimaryKey("symbol", primaryKeyValue)
+                    .withList(updateColumn,arr ));
+            e.printStackTrace();
+        }
+        return insertAppendStatus;
+    }
     /* Just found this in the docs, will check it out later and likely refactor, too tired right now
     * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.html
     * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.BatchWriteExample.html
@@ -172,11 +226,49 @@ public class DynamoManager {
         }
     }
 
+    public void createPairsTable(){
+        /*
+        * Timestamp is index, other values will be Open High Low Close Volume
+        * TODO add error handling
+        * */
+        try {
+            Table table = dynamoDB.createTable("pairs",
+                    Arrays.asList(new KeySchemaElement("symbol", KeyType.HASH)),
+                    Arrays.asList(new AttributeDefinition("symbol", ScalarAttributeType.S)),
+                    new ProvisionedThroughput(10L, 10L));
+            try {
+                table.waitForActive();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Success.  Table status: " + table.getDescription().getTableStatus());
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteAllTables(){
+
+        dynamoDB.listTables().forEach(table -> {
+            try {
+                table.delete();
+            }
+            catch (Exception e){
+                System.out.println(e);
+            }
+        });
+    }
+
 
 
     public static void main(String[] args){
         String s = String.format("%s_%s", "ADA/BTC", "5m");
         System.out.println(s);
+        DynamoManager dynamoManager = new DynamoManager();
+        dynamoManager.deleteAllTables();
+        dynamoManager.createPairsTable();
+
     }
 
 
