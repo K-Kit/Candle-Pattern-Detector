@@ -13,8 +13,9 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Queue;
 
-
-// really should add error handling and async asap but lets keep it simple for now
+/*
+* 
+* */
 public class Main {
 
     public static void main(String[] args) {
@@ -23,8 +24,16 @@ public class Main {
         * */
         BinanceDataLoader binanceDataLoader = new BinanceDataLoader();
 
-
+        // just 1 pair for now
         List<String> marketSymbols = binanceDataLoader.getTickers("ETHBTC");
+
+        /*
+        * Open new depth cache for each symbol
+        * todo handle socket failure
+        * */
+        marketSymbols.forEach(symbol -> {
+            new DepthCache(symbol);
+        });
 
 //        String s = marketSymbols.toString().toLowerCase();
 //        String socketListString = s.substring(1, s.length()-1);
@@ -48,7 +57,6 @@ public class Main {
 //            System.out.println(response.getAsks());
 //        });
 
-        DepthCache depthCache = new DepthCache("ETHBTC");
 
     }
 }

@@ -43,10 +43,6 @@ public class DynamoManager {
         dynamoDB = new DynamoDB(client);
     }
 
-
-
-
-
     public Item createCandleItem(Candlestick candlestick) {
         return new Item().withPrimaryKey("timestamp", candlestick.getOpenTime())
                 .withDouble("open", Double.parseDouble((candlestick.getOpen())))
@@ -70,8 +66,6 @@ public class DynamoManager {
     }
 
 
-
-
     /*
      * naming convention is SYMBOL_INTERVAL
      * symbol being the "pair" ex. ADA/BTC
@@ -84,8 +78,6 @@ public class DynamoManager {
         return String.format("%s_%s", symbol, interval);
     }
 
-
-
     public void updateDepthItem(DepthCache depthCache){
         Map entry = new JSONObject(depthCache.getDepthCache()).toMap();
         Table table = dynamoDB.getTable(depthCache.symbol);
@@ -96,37 +88,7 @@ public class DynamoManager {
 //        insertKeyValue("pairs", "symbol", depthCache.symbol,
 //                "time_depth", entry);
     }
-
-    public boolean insertKeyValue(String tableName, String primaryKey, String
-            primaryKeyValue, String updateColumn, Object newValue) {
-
-        List<Object> arr = new ArrayList<>();
-        arr.add(newValue);
-
-        Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
-        expressionAttributeValues.put(":val", arr);
-
-        Map<String, String> expressionAttributeNames = new HashMap<String, String>();
-        expressionAttributeNames.put("#D", updateColumn);
-        //Configuration to connect to DynamoDB
-
-        Table table = dynamoDB.getTable(tableName);
-
-
-        boolean insertAppendStatus = false;
-        try {
-            String updateExpression = "set #D = list_append(#D, :val)";
-            table.updateItem(primaryKey, primaryKeyValue, updateExpression, expressionAttributeNames, expressionAttributeValues);
-            insertAppendStatus = true;
-        } catch(Exception e) {
-            // this needs to be changed to only happen on item doesnt exist but i'm getting tired and provisioned
-            // throughput is being weird..
-            table.putItem(new Item().withPrimaryKey("symbol", primaryKeyValue)
-                    .withList(updateColumn,arr ));
-            e.printStackTrace();
-        }
-        return insertAppendStatus;
-    }
+    
     /* Just found this in the docs, will check it out later and likely refactor, too tired right now
     * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.html
     * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.BatchWriteExample.html
